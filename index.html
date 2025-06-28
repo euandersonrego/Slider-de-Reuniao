@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gerador de Propostas - Método I.M.P.A.C.T.O.</title>
+    <title>Gerador de Propostas & Roteiro de Kickoff - Método I.M.P.A.C.T.O.</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Font Awesome -->
@@ -15,6 +15,8 @@
     <style>
         body { font-family: 'Inter', sans-serif; }
         .hidden { display: none; }
+        
+        /* Estilos para a visualização na tela */
         .slide {
             min-height: 100vh;
             border-bottom: 1px solid #e5e7eb;
@@ -23,6 +25,7 @@
             align-items: center;
             justify-content: center;
             padding: 2rem;
+            width: 100%;
         }
         .card {
             background-color: white;
@@ -30,29 +33,44 @@
             padding: 2rem;
             box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
         }
-        #form-panel::-webkit-scrollbar { width: 8px; }
-        #form-panel::-webkit-scrollbar-track { background: #f1f1f1; }
-        #form-panel::-webkit-scrollbar-thumb { background: #888; border-radius: 4px; }
-        #form-panel::-webkit-scrollbar-thumb:hover { background: #555; }
-        .pdf-friendly .slide {
+        #form-panel::-webkit-scrollbar, #kickoff-form-panel::-webkit-scrollbar { width: 8px; }
+        #form-panel::-webkit-scrollbar-track, #kickoff-form-panel::-webkit-scrollbar-track { background: #f1f1f1; }
+        #form-panel::-webkit-scrollbar-thumb, #kickoff-form-panel::-webkit-scrollbar-thumb { background: #888; border-radius: 4px; }
+        #form-panel::-webkit-scrollbar-thumb:hover, #kickoff-form-panel::-webkit-scrollbar-thumb:hover { background: #555; }
+
+        #form-panel, #preview-panel, #kickoff-form-panel, #kickoff-preview-panel { transition: width 0.5s ease-in-out; }
+        #password-overlay { background-color: rgba(17, 24, 39, 0.95); }
+        .tab-btn.active { border-bottom-color: #0891b2; color: #0e7490; font-weight: 700; }
+
+        /* Estilos específicos para impressão/PDF */
+        .printable-version {
+            color: #111827 !important; /* Texto escuro */
+            background-color: #ffffff !important; /* Fundo branco */
+        }
+        .printable-version .slide {
             min-height: auto;
             height: auto;
-            padding-top: 4rem;
-            padding-bottom: 4rem;
+            display: block;
+            padding: 2rem 1rem;
             page-break-inside: avoid;
+            border-bottom: 1px solid #e5e7eb;
         }
-        .pdf-friendly .card, .pdf-friendly .bg-gray-800 {
-            page-break-inside: avoid;
+        .printable-version .card {
+            box-shadow: none;
+            border: 1px solid #e5e7eb;
         }
-        #form-panel, #preview-panel {
-            transition: all 0.5s ease-in-out;
+        .printable-version .bg-gray-900, .printable-version .bg-gray-800 {
+            background-color: #f3f4f6 !important; /* cinza claro */
+            color: #111827 !important; /* texto escuro */
         }
-        #password-overlay { background-color: rgba(17, 24, 39, 0.95); }
+        .printable-version .text-white, .printable-version .text-cyan-400 {
+            color: #111827 !important; /* texto escuro */
+        }
     </style>
 </head>
 <body class="bg-gray-200">
 
-    <!-- Camada de Senha (Visível por padrão) -->
+    <!-- Camada de Senha -->
     <div id="password-overlay" class="fixed inset-0 bg-gray-900 bg-opacity-95 flex items-center justify-center z-50">
         <div class="w-full max-w-sm p-8 bg-white rounded-2xl shadow-2xl text-center">
             <h2 class="text-2xl font-bold text-gray-800">Acesso Restrito</h2>
@@ -63,314 +81,314 @@
         </div>
     </div>
 
-    <!-- Conteúdo Principal do App (Inicialmente Oculto) -->
-    <div id="app-content" class="hidden flex flex-col md:flex-row h-screen">
-        <!-- FORM PANEL -->
-        <div id="form-panel" class="w-full md:w-1/3 bg-white p-6 overflow-y-auto">
-            <div class="flex justify-between items-center mb-6">
-                <div>
-                    <h2 class="text-2xl font-bold">Editor da Proposta</h2>
-                    <p class="text-gray-500">Personalize a sua proposta.</p>
-                </div>
-                <button id="hide-editor-btn" class="text-gray-500 hover:text-cyan-600 p-2 rounded-full" title="Ocultar Editor">
-                    <i class="fas fa-eye-slash fa-lg"></i>
-                </button>
+    <!-- Conteúdo Principal do App -->
+    <div id="app-content" class="hidden flex-col h-screen">
+        <div class="w-full bg-white shadow-md no-print">
+            <div class="flex border-b">
+              <button id="tab-proposal" class="tab-btn p-4 font-semibold border-b-2 active">Gerador de Proposta</button>
+              <button id="tab-kickoff" class="tab-btn p-4 font-semibold border-b-2 border-transparent text-gray-500 hover:text-cyan-600">Relatório de Kickoff</button>
             </div>
-            
-            <form id="proposal-form" class="space-y-4">
-                 <!-- 1. Dados da Capa -->
-                 <div class="p-4 border rounded-lg">
-                     <h3 class="font-semibold text-lg mb-2 text-cyan-700">1. Capa</h3>
-                     <div><label class="block text-sm font-medium text-gray-700">Seu Nome</label><input type="text" data-target="gestorNome-val" class="mt-1 w-full border border-gray-300 rounded-md p-2" value="Anderson Rêgo"></div>
-                     <div><label class="block text-sm font-medium text-gray-700">Nome do Cliente (ou Empresa)</label><input type="text" data-target="clienteNome-val" class="mt-1 w-full border border-gray-300 rounded-md p-2" value="Nome do Cliente"></div>
-                     <div><label class="block text-sm font-medium text-gray-700">Frase de Impacto</label><textarea data-target="fraseImpacto-val" class="mt-1 w-full border border-gray-300 rounded-md p-2">Uma parceria para alavancar seus resultados</textarea></div>
-                 </div>
-                 <!-- 2. Apresentação -->
-                 <div class="p-4 border rounded-lg">
-                     <h3 class="font-semibold text-lg mb-2 text-cyan-700">2. Sua Apresentação</h3>
-                     <textarea data-target="apresentacao-val" rows="8" class="mt-1 w-full border border-gray-300 rounded-md p-2 text-sm">Meu trabalho como Gestor de Tráfego é gerenciar suas plataformas de anúncios (Facebook Ads e Google Ads) e montar estratégias para atrair mais clientes para o seu negócio. Sou especialista em I.A. e uso essas ferramentas para auxiliar a maximizar os resultados, e ainda crio relatórios semanais pensando em maximizar os seus ganhos.</textarea>
-                     <input type="text" data-target="citacao-val" class="mt-2 w-full border border-gray-300 rounded-md p-2 font-semibold" value='"O gestor de tráfego vende DINHEIRO"'>
-                     <input type="text" data-target="autorCitacao-val" class="mt-1 w-full border border-gray-300 rounded-md p-2 text-sm" value="Pedro Sobral | Comunidade Sobral de Tráfego">
-                 </div>
-                 <!-- 3. Como Funciona (4 Pilares) -->
-                 <div class="p-4 border rounded-lg">
-                     <h3 class="font-semibold text-lg mb-2 text-cyan-700">3. Como Funciona o Tráfego Pago?</h3>
-                     <input type="text" data-target="pilarTitulo1-val" class="mt-1 w-full border border-gray-300 rounded-md p-2 font-semibold" value="Orçamento"><textarea data-target="pilarDesc1-val" class="mt-1 w-full border border-gray-300 rounded-md p-2 text-sm">O valor que será investido para alcançar as pessoas.</textarea>
-                     <input type="text" data-target="pilarTitulo2-val" class="mt-1 w-full border border-gray-300 rounded-md p-2 font-semibold" value="Objetivo"><textarea data-target="pilarDesc2-val" class="mt-1 w-full border border-gray-300 rounded-md p-2 text-sm">O que queremos que as pessoas façam (mandar mensagem, comprar, etc.).</textarea>
-                     <input type="text" data-target="pilarTitulo3-val" class="mt-1 w-full border border-gray-300 rounded-md p-2 font-semibold" value="Público"><textarea data-target="pilarDesc3-val" class="mt-1 w-full border border-gray-300 rounded-md p-2 text-sm">Para quem os anúncios serão mostrados (idade, interesses, localização).</textarea>
-                     <input type="text" data-target="pilarTitulo4-val" class="mt-1 w-full border border-gray-300 rounded-md p-2 font-semibold" value="Anúncios"><textarea data-target="pilarDesc4-val" class="mt-1 w-full border border-gray-300 rounded-md p-2 text-sm">A imagem/vídeo e o texto que a pessoa irá ver.</textarea>
-                 </div>
-                 <!-- 4. Diagnóstico -->
-                 <div class="p-4 border rounded-lg">
-                     <h3 class="font-semibold text-lg mb-2 text-cyan-700">4. Perguntas de Diagnóstico</h3>
-                     <div><label class="text-sm font-medium text-gray-700">Pergunta 1</label><input type="text" data-target="diagPergunta1-val" class="mt-1 w-full border border-gray-300 rounded-md p-2" value="Qual é a sua maior dificuldade para atrair clientes hoje?"></div>
-                     <div><label class="text-sm font-medium text-gray-700">Pergunta 2</label><input type="text" data-target="diagPergunta2-val" class="mt-1 w-full border border-gray-300 rounded-md p-2" value="Você já investiu em anúncios online? Quais foram os resultados?"></div>
-                     <div><label class="text-sm font-medium text-gray-700">Pergunta 3</label><input type="text" data-target="diagPergunta3-val" class="mt-1 w-full border border-gray-300 rounded-md p-2" value="Se pudéssemos resolver seu maior problema de marketing, qual seria o impacto no seu negócio?"></div>
-                 </div>
-                 <!-- 5. Detalhes do Método I.M.P.A.C.T.O. -->
-                 <div class="p-4 border rounded-lg">
-                     <h3 class="font-semibold text-lg mb-2 text-cyan-700">5. Detalhes do Método I.M.P.A.C.T.O.</h3>
-                     <div class="space-y-3">
-                         <div><label class="text-sm font-bold">I - Inventário</label><textarea data-target="impactoDescI-val" class="mt-1 w-full border border-gray-300 rounded-md p-2 text-sm">Diagnóstico completo do seu negócio, produtos, ofertas e concorrência para definir a melhor estratégia inicial.</textarea></div>
-                         <div><label class="text-sm font-bold">M - Mensagem</label><textarea data-target="impactoDescM-val" class="mt-1 w-full border border-gray-300 rounded-md p-2 text-sm">Criação da comunicação certa que toca na dor do seu cliente ideal e o convence a clicar, usando copywriting estratégico.</textarea></div>
-                         <div><label class="text-sm font-bold">P - Público</label><textarea data-target="impactoDescP-val" class="mt-1 w-full border border-gray-300 rounded-md p-2 text-sm">Mapeamento e configuração dos públicos ideais (interesses, comportamentos, lookalike) para encontrar quem realmente compra.</textarea></div>
-                         <div><label class="text-sm font-bold">A - Anúncio</label><textarea data-target="impactoDescA-val" class="mt-1 w-full border border-gray-300 rounded-md p-2 text-sm">Estruturação das campanhas com objetivos claros, orçamento e criativos que chamam a atenção e geram resultados.</textarea></div>
-                         <div><label class="text-sm font-bold">C - Conversão</label><textarea data-target="impactoDescC-val" class="mt-1 w-full border border-gray-300 rounded-md p-2 text-sm">Otimização do destino do clique (página de vendas, perfil, WhatsApp) para garantir que as visitas se transformem em vendas.</textarea></div>
-                         <div><label class="text-sm font-bold">T - Teste</label><textarea data-target="impactoDescT-val" class="mt-1 w-full border border-gray-300 rounded-md p-2 text-sm">Fase de comparação entre criativos e públicos para descobrir, com dados, o que funciona melhor antes de escalar.</textarea></div>
-                         <div><label class="text-sm font-bold">O - Otimização</label><textarea data-target="impactoDescO-val" class="mt-1 w-full border border-gray-300 rounded-md p-2 text-sm">Análise de métricas para ajustar e escalar as campanhas vencedoras, garantindo o melhor retorno sobre o investimento (ROI).</textarea></div>
-                     </div>
-                 </div>
-                 <!-- 6. Como Acontece na Prática -->
-                 <div class="p-4 border rounded-lg">
-                     <h3 class="font-semibold text-lg mb-2 text-cyan-700">6. Como Acontece na Prática?</h3>
-                     <div class="space-y-3">
-                         <textarea data-target="praticaDesc1-val" class="mt-1 w-full border border-gray-300 rounded-md p-2 text-sm">Nossa parceria é formalizada com o pagamento antecipado da mensalidade, via Pix ou transferência.</textarea>
-                         <textarea data-target="praticaDesc2-val" class="mt-1 w-full border border-gray-300 rounded-md p-2 text-sm">Definiremos juntos os criativos (imagens/vídeos) e estratégias. Você pode fornecer o material ou adaptamos o que já existe.</textarea>
-                         <textarea data-target="praticaDesc3-val" class="mt-1 w-full border border-gray-300 rounded-md p-2 text-sm">Vou te guiar em todo o processo de configuração da conta de anúncios, garantindo que tudo esteja 100% correto.</textarea>
-                         <textarea data-target="praticaDesc4-val" class="mt-1 w-full border border-gray-300 rounded-md p-2 text-sm">O compartilhamento do acesso à sua conta será feito de forma segura durante nossa reunião de kickoff.</textarea>
-                         <textarea data-target="praticaDesc5-val" class="mt-1 w-full border border-gray-300 rounded-md p-2 text-sm">Você terá um canal de comunicação direto via WhatsApp para tirar dúvidas e fazer alinhamentos.</textarea>
-                         <textarea data-target="praticaDesc6-val" class="mt-1 w-full border border-gray-300 rounded-md p-2 text-sm">Teremos um encontro semanal para discutir os resultados e alinhar as próximas estratégias.</textarea>
-                         <textarea data-target="praticaDesc7-val" class="mt-1 w-full border border-gray-300 rounded-md p-2 text-sm">Você receberá relatórios claros para entender exatamente o retorno de suas campanhas.</textarea>
-                         <textarea data-target="praticaDesc8-val" class="mt-1 w-full border border-gray-300 rounded-md p-2 text-sm">Suas campanhas serão monitoradas e otimizadas diariamente para garantir o melhor uso do seu investimento.</textarea>
-                     </div>
-                 </div>
-                 <!-- 7. Valores e Fechamento -->
-                 <div class="p-4 border rounded-lg">
-                     <h3 class="font-semibold text-lg mb-2 text-cyan-700">7. Valores e Fechamento</h3>
-                      <div><label class="block text-sm font-medium text-gray-700">Investimento em Anúncios (R$)</label><input type="number" id="valorAnuncios" data-target="valorAnuncios-val" class="mt-1 w-full border border-gray-300 rounded-md p-2" value="500"></div>
-                      <div><label class="block text-sm font-medium text-gray-700">Seus Honorários (R$)</label><input type="number" id="valorHonorarios" data-target="valorHonorarios-val" class="mt-1 w-full border border-gray-300 rounded-md p-2" value="300"></div>
-                      <div><label class="block text-sm font-medium text-gray-700">Validade da Proposta</label><input type="text" id="validadeProposta" data-target="validadeProposta-val" class="mt-1 w-full border border-gray-300 rounded-md p-2" value="DD/MM/AAAA"></div>
-                      <div><label class="block text-sm font-medium text-gray-700">Seu Contato Final</label><input type="text" id="gestorContato" data-target="gestorContato-val" class="mt-1 w-full border border-gray-300 rounded-md p-2" value="(99) 99999-9999"></div>
-                 </div>
-                  <div class="mt-6 space-y-3">
-                       <button type="button" id="download-pdf-btn" class="w-full bg-cyan-600 hover:bg-cyan-700 text-white font-bold py-3 px-4 rounded-lg shadow-lg flex items-center justify-center text-lg">
-                           <i class="fas fa-file-pdf mr-2"></i> Baixar Proposta em PDF
-                       </button>
-                  </div>
-            </form>
         </div>
 
-        <!-- PREVIEW PANEL -->
-        <div id="preview-panel" class="w-full md:w-2/3 overflow-y-auto">
-            <div id="proposal-preview" class="bg-gray-100 text-gray-800">
-                 <!-- Slides do Preview -->
-                 <section class="slide bg-gray-900 text-white text-center">
-                     <div class="max-w-3xl">
-                         <h1 class="text-4xl md:text-6xl font-extrabold" data-preview="clienteNome-val">[Nome do Cliente]</h1>
-                         <p class="mt-4 text-xl md:text-2xl text-cyan-400" data-preview="fraseImpacto-val">Uma parceria para alavancar seus resultados</p>
-                         <p class="mt-8">Apresentado por: <span class="font-bold" data-preview="gestorNome-val">[Seu Nome]</span></p>
-                     </div>
-                 </section>
-                 <section class="slide">
-                      <div class="max-w-3xl text-center">
-                          <h2 class="text-3xl md:text-4xl font-bold mb-8">Prazer, <span data-preview="gestorNome-val">[Seu Nome]</span>!</h2>
-                          <div class="card text-left text-lg text-gray-700 space-y-4">
-                              <p data-preview="apresentacao-val"></p>
-                              <div class="text-center pt-4">
-                                  <p class="text-xl font-semibold text-gray-800" data-preview="citacao-val"></p>
-                                  <p class="text-md text-gray-500" data-preview="autorCitacao-val"></p>
-                              </div>
-                          </div>
-                      </div>
-                 </section>
-                 <section class="slide bg-gray-900 text-white text-center">
-                      <div class="max-w-3xl">
-                          <h2 class="text-4xl md:text-5xl font-bold uppercase">Como funciona o <span class="text-cyan-400">Tráfego Pago?</span></h2>
-                      </div>
-                 </section>
-                 <section class="slide">
-                      <div class="max-w-4xl text-center">
-                          <h2 class="text-3xl md:text-4xl font-bold mb-10">Os 4 Pilares Essenciais</h2>
-                          <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
-                              <div class="card text-center"><i class="fas fa-dollar-sign text-4xl text-cyan-500 mb-4"></i><h3 class="font-bold text-xl mb-2" data-preview="pilarTitulo1-val"></h3><p class="text-gray-600" data-preview="pilarDesc1-val"></p></div>
-                              <div class="card text-center"><i class="fas fa-bullseye text-4xl text-cyan-500 mb-4"></i><h3 class="font-bold text-xl mb-2" data-preview="pilarTitulo2-val"></h3><p class="text-gray-600" data-preview="pilarDesc2-val"></p></div>
-                              <div class="card text-center"><i class="fas fa-users text-4xl text-cyan-500 mb-4"></i><h3 class="font-bold text-xl mb-2" data-preview="pilarTitulo3-val"></h3><p class="text-gray-600" data-preview="pilarDesc3-val"></p></div>
-                              <div class="card text-center"><i class="fas fa-ad text-4xl text-cyan-500 mb-4"></i><h3 class="font-bold text-xl mb-2" data-preview="pilarTitulo4-val"></h3><p class="text-gray-600" data-preview="pilarDesc4-val"></p></div>
-                          </div>
-                      </div>
-                 </section>
-                 <section class="slide bg-gray-200">
-                     <div class="max-w-3xl text-center">
-                         <h2 class="text-3xl md:text-4xl font-bold mb-8">Antes de tudo, preciso te ouvir.</h2>
-                         <div class="card text-left">
-                             <h3 class="font-bold text-2xl mb-4">Onde o calo aperta?</h3>
-                             <ul class="space-y-3 text-gray-600 text-lg">
-                                 <li><i class="fas fa-question-circle text-cyan-500 mr-2"></i> <span data-preview="diagPergunta1-val"></span></li>
-                                 <li><i class="fas fa-question-circle text-cyan-500 mr-2"></i> <span data-preview="diagPergunta2-val"></span></li>
-                                 <li><i class="fas fa-question-circle text-cyan-500 mr-2"></i> <span data-preview="diagPergunta3-val"></span></li>
-                             </ul>
-                         </div>
-                     </div>
-                 </section>
-                 <section class="slide bg-gray-900 text-white text-center">
-                     <div class="max-w-3xl">
-                         <h2 class="text-4xl md:text-5xl font-bold uppercase"><span data-preview="clienteNome-val" class="text-cyan-400"></span>, posso te fazer uma proposta?</h2>
-                     </div>
-                 </section>
-                 <section class="slide">
-                     <div class="max-w-5xl w-full text-center">
-                         <h2 class="text-3xl md:text-4xl font-bold mb-10">Meu Método de Trabalho: I.M.P.A.C.T.O.</h2>
-                         <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6 text-left">
-                            <div class="card"><h3 class="font-bold text-xl mb-2"><span class="text-cyan-500">I</span>nventário</h3><p class="text-gray-600" data-preview="impactoDescI-val"></p></div>
-                            <div class="card"><h3 class="font-bold text-xl mb-2"><span class="text-cyan-500">M</span>ensagem</h3><p class="text-gray-600" data-preview="impactoDescM-val"></p></div>
-                            <div class="card"><h3 class="font-bold text-xl mb-2"><span class="text-cyan-500">P</span>úblico</h3><p class="text-gray-600" data-preview="impactoDescP-val"></p></div>
-                            <div class="card"><h3 class="font-bold text-xl mb-2"><span class="text-cyan-500">A</span>núncio</h3><p class="text-gray-600" data-preview="impactoDescA-val"></p></div>
-                            <div class="card"><h3 class="font-bold text-xl mb-2"><span class="text-cyan-500">C</span>onversão</h3><p class="text-gray-600" data-preview="impactoDescC-val"></p></div>
-                            <div class="card"><h3 class="font-bold text-xl mb-2"><span class="text-cyan-500">T</span>este</h3><p class="text-gray-600" data-preview="impactoDescT-val"></p></div>
-                            <div class="col-span-1 md:col-span-2 lg:col-span-3"><div class="card w-full"><h3 class="font-bold text-xl mb-2"><span class="text-cyan-500">O</span>timização</h3><p class="text-gray-600" data-preview="impactoDescO-val"></p></div></div>
-                         </div>
-                     </div>
-                 </section>
-                  <section class="slide bg-gray-200">
-                       <div class="max-w-4xl w-full text-center">
-                           <h2 class="text-3xl md:text-4xl font-bold mb-10">Como Acontece na Prática?</h2>
-                           <div class="grid md:grid-cols-2 gap-6 text-left">
-                               <div class="card flex items-start space-x-4"><span class="bg-cyan-500 text-gray-900 rounded-full h-8 w-8 flex-shrink-0 inline-flex items-center justify-center font-bold">1</span><div><h3 class="font-bold text-xl mb-1">Início da Parceria (Pagamento)</h3><p class="text-gray-600" data-preview="praticaDesc1-val"></p></div></div>
-                               <div class="card flex items-start space-x-4"><span class="bg-cyan-500 text-gray-900 rounded-full h-8 w-8 flex-shrink-0 inline-flex items-center justify-center font-bold">2</span><div><h3 class="font-bold text-xl mb-1">Definição dos Criativos</h3><p class="text-gray-600" data-preview="praticaDesc2-val"></p></div></div>
-                               <div class="card flex items-start space-x-4"><span class="bg-cyan-500 text-gray-900 rounded-full h-8 w-8 flex-shrink-0 inline-flex items-center justify-center font-bold">3</span><div><h3 class="font-bold text-xl mb-1">Configuração Guiada da Conta</h3><p class="text-gray-600" data-preview="praticaDesc3-val"></p></div></div>
-                               <div class="card flex items-start space-x-4"><span class="bg-cyan-500 text-gray-900 rounded-full h-8 w-8 flex-shrink-0 inline-flex items-center justify-center font-bold">4</span><div><h3 class="font-bold text-xl mb-1">Acesso Seguro à Conta</h3><p class="text-gray-600" data-preview="praticaDesc4-val"></p></div></div>
-                               <div class="card flex items-start space-x-4"><span class="bg-cyan-500 text-gray-900 rounded-full h-8 w-8 flex-shrink-0 inline-flex items-center justify-center font-bold">5</span><div><h3 class="font-bold text-xl mb-1">Suporte e Contato Direto</h3><p class="text-gray-600" data-preview="praticaDesc5-val"></p></div></div>
-                               <div class="card flex items-start space-x-4"><span class="bg-cyan-500 text-gray-900 rounded-full h-8 w-8 flex-shrink-0 inline-flex items-center justify-center font-bold">6</span><div><h3 class="font-bold text-xl mb-1">Encontros Estratégicos</h3><p class="text-gray-600" data-preview="praticaDesc6-val"></p></div></div>
-                               <div class="card flex items-start space-x-4"><span class="bg-cyan-500 text-gray-900 rounded-full h-8 w-8 flex-shrink-0 inline-flex items-center justify-center font-bold">7</span><div><h3 class="font-bold text-xl mb-1">Relatórios Semanais</h3><p class="text-gray-600" data-preview="praticaDesc7-val"></p></div></div>
-                               <div class="card flex items-start space-x-4"><span class="bg-cyan-500 text-gray-900 rounded-full h-8 w-8 flex-shrink-0 inline-flex items-center justify-center font-bold">8</span><div><h3 class="font-bold text-xl mb-1">Gestão e Otimização Diária</h3><p class="text-gray-600" data-preview="praticaDesc8-val"></p></div></div>
-                           </div>
-                       </div>
-                  </section>
-                 <section class="slide">
-                     <div class="max-w-3xl text-center">
-                         <h2 class="text-3xl md:text-4xl font-bold mb-8">Proposta Financeira</h2>
-                         <div class="card w-full max-w-sm mx-auto">
-                             <div class="text-left space-y-4">
-                                  <div><p class="font-bold text-lg">Investimento em Anúncios:</p><p class="text-2xl font-bold text-cyan-600">R$ <span class="font-extrabold" data-preview="valorAnuncios-val"></span><span class="text-base font-medium text-gray-500">,00 /mês</span></p></div><hr class="my-4">
-                                  <div><p class="font-bold text-lg">Meus Honorários (Gestão):</p><p class="text-2xl font-bold text-cyan-600">R$ <span class="font-extrabold" data-preview="valorHonorarios-val"></span><span class="text-base font-medium text-gray-500">,00 /mês</span></p></div>
-                             </div>
-                             <div class="mt-6 bg-gray-100 p-4 rounded-lg"><p class="text-lg font-bold">Investimento Total:</p><p class="text-4xl font-extrabold text-gray-800" data-preview="valorTotal-val"></p></div>
-                         </div>
-                     </div>
-                 </section>
-                 <section class="slide bg-gray-900 text-white">
-                      <div class="max-w-3xl text-center">
-                          <h2 class="text-3xl md:text-4xl font-bold mb-4">Vamos fechar nossa parceria?</h2>
-                          <div class="bg-gray-800 p-6 rounded-2xl">
-                               <h3 class="font-bold text-2xl mb-4 text-cyan-400">Próximos Passos</h3>
-                              <ol class="text-left space-y-3 text-lg">
-                                   <li><span class="bg-cyan-500 text-gray-900 rounded-full h-8 w-8 inline-flex items-center justify-center font-bold mr-3">1</span>Aceite da Proposta</li>
-                                   <li><span class="bg-cyan-500 text-gray-900 rounded-full h-8 w-8 inline-flex items-center justify-center font-bold mr-3">2</span>Envio do Contrato e Pagamento</li>
-                                   <li><span class="bg-cyan-500 text-gray-900 rounded-full h-8 w-8 inline-flex items-center justify-center font-bold mr-3">3</span>Reunião de Kickoff!</li>
-                              </ol>
-                          </div>
-                          <div class="mt-8 text-sm"><p>Proposta válida até <span data-preview="validadeProposta-val"></span></p><p class="mt-4">Obrigado pela oportunidade!</p><p><span data-preview="gestorNome-val"></span> | <span data-preview="gestorContato-val"></span></p></div>
-                       </div>
-                 </section>
+        <!-- Ferramenta Proposta -->
+        <div id="proposal-tool" class="flex flex-col md:flex-row flex-grow overflow-hidden">
+            <div id="form-panel" class="w-full md:w-1/3 bg-white p-6 overflow-y-auto no-print">
+                 <div class="flex justify-between items-center mb-6">
+                    <div><h2 class="text-2xl font-bold">Editor da Proposta</h2><p class="text-gray-500">Personalize a sua proposta.</p></div>
+                    <button id="hide-editor-btn" class="text-gray-500 hover:text-cyan-600 p-2 rounded-full" title="Ocultar Editor"><i class="fas fa-eye-slash fa-lg"></i></button>
+                </div>
+                <form id="proposal-form" class="space-y-4">
+                    <div class="p-4 border rounded-lg"><h3 class="font-semibold text-lg mb-2 text-cyan-700">1. Capa</h3><div><label class="block text-sm font-medium text-gray-700">Seu Nome</label><input type="text" data-target="gestorNome-val" class="mt-1 w-full border border-gray-300 rounded-md p-2" value="Anderson Rêgo"></div><div><label class="block text-sm font-medium text-gray-700">Nome do Cliente</label><input type="text" id="clienteNomeInput" data-target="clienteNome-val" class="mt-1 w-full border border-gray-300 rounded-md p-2" value="Nome do Cliente"></div><div><label class="block text-sm font-medium text-gray-700">Frase de Impacto</label><textarea data-target="fraseImpacto-val" class="mt-1 w-full border border-gray-300 rounded-md p-2">Uma parceria para alavancar seus resultados</textarea></div></div>
+                    <div class="p-4 border rounded-lg"><h3 class="font-semibold text-lg mb-2 text-cyan-700">2. Sua Apresentação</h3><textarea data-target="apresentacao-val" rows="8" class="mt-1 w-full border border-gray-300 rounded-md p-2 text-sm">Meu trabalho como Gestor de Tráfego é gerenciar suas plataformas de anúncios (Facebook Ads e Google Ads) e montar estratégias para atrair mais clientes para o seu negócio. Sou especialista em I.A. e uso essas ferramentas para auxiliar a maximizar os resultados, e ainda crio relatórios semanais pensando em maximizar os seus ganhos.</textarea><input type="text" data-target="citacao-val" class="mt-2 w-full border border-gray-300 rounded-md p-2 font-semibold" value='"O gestor de tráfego vende DINHEIRO"'><input type="text" data-target="autorCitacao-val" class="mt-1 w-full border border-gray-300 rounded-md p-2 text-sm" value="Pedro Sobral | Comunidade Sobral de Tráfego"></div>
+                    <div class="p-4 border rounded-lg"><h3 class="font-semibold text-lg mb-2 text-cyan-700">3. Como Funciona o Tráfego Pago?</h3><input type="text" data-target="pilarTitulo1-val" class="mt-1 w-full border border-gray-300 rounded-md p-2 font-semibold" value="Orçamento"><textarea data-target="pilarDesc1-val" rows="3" class="mt-1 w-full border border-gray-300 rounded-md p-2 text-sm">O valor que será investido para alcançar as pessoas.</textarea><input type="text" data-target="pilarTitulo2-val" class="mt-1 w-full border border-gray-300 rounded-md p-2 font-semibold" value="Objetivo"><textarea data-target="pilarDesc2-val" rows="3" class="mt-1 w-full border border-gray-300 rounded-md p-2 text-sm">O que queremos que as pessoas façam (mandar mensagem, comprar, etc.).</textarea><input type="text" data-target="pilarTitulo3-val" class="mt-1 w-full border border-gray-300 rounded-md p-2 font-semibold" value="Público"><textarea data-target="pilarDesc3-val" rows="3" class="mt-1 w-full border border-gray-300 rounded-md p-2 text-sm">Para quem os anúncios serão mostrados (idade, interesses, localização).</textarea><input type="text" data-target="pilarTitulo4-val" class="mt-1 w-full border border-gray-300 rounded-md p-2 font-semibold" value="Anúncios"><textarea data-target="pilarDesc4-val" rows="3" class="mt-1 w-full border border-gray-300 rounded-md p-2 text-sm">A imagem/vídeo e o texto que a pessoa irá ver.</textarea></div>
+                    <div class="p-4 border rounded-lg"><h3 class="font-semibold text-lg mb-2 text-cyan-700">4. Perguntas de Diagnóstico</h3><div><label class="text-sm font-medium text-gray-700">Pergunta 1</label><input type="text" data-target="diagPergunta1-val" class="mt-1 w-full border border-gray-300 rounded-md p-2" value="Qual é a sua maior dificuldade para atrair clientes hoje?"></div><div><label class="text-sm font-medium text-gray-700">Pergunta 2</label><input type="text" data-target="diagPergunta2-val" class="mt-1 w-full border border-gray-300 rounded-md p-2" value="Você já investiu em anúncios online? Quais foram os resultados?"></div><div><label class="text-sm font-medium text-gray-700">Pergunta 3</label><input type="text" data-target="diagPergunta3-val" class="mt-1 w-full border border-gray-300 rounded-md p-2" value="Se pudéssemos resolver seu maior problema de marketing, qual seria o impacto no seu negócio?"></div></div>
+                    <div class="p-4 border rounded-lg"><h3 class="font-semibold text-lg mb-2 text-cyan-700">5. Detalhes do Método I.M.P.A.C.T.O.</h3><div class="space-y-3"><div><label class="text-sm font-bold">I - Inventário</label><textarea data-target="impactoDescI-val" class="mt-1 w-full border border-gray-300 rounded-md p-2 text-sm">Diagnóstico completo do seu negócio, produtos, ofertas e concorrência para definir a melhor estratégia inicial.</textarea></div><div><label class="text-sm font-bold">M - Mensagem</label><textarea data-target="impactoDescM-val" class="mt-1 w-full border border-gray-300 rounded-md p-2 text-sm">Criação da comunicação certa que toca na dor do seu cliente ideal e o convence a clicar, usando copywriting estratégico.</textarea></div><div><label class="text-sm font-bold">P - Público</label><textarea data-target="impactoDescP-val" class="mt-1 w-full border border-gray-300 rounded-md p-2 text-sm">Mapeamento e configuração dos públicos ideais (interesses, comportamentos, lookalike) para encontrar quem realmente compra.</textarea></div><div><label class="text-sm font-bold">A - Anúncio</label><textarea data-target="impactoDescA-val" class="mt-1 w-full border border-gray-300 rounded-md p-2 text-sm">Estruturação das campanhas com objetivos claros, orçamento e criativos que chamam a atenção e geram resultados.</textarea></div><div><label class="text-sm font-bold">C - Conversão</label><textarea data-target="impactoDescC-val" class="mt-1 w-full border border-gray-300 rounded-md p-2 text-sm">Otimização do destino do clique (página de vendas, perfil, WhatsApp) para garantir que as visitas se transformem em vendas.</textarea></div><div><label class="text-sm font-bold">T - Teste</label><textarea data-target="impactoDescT-val" class="mt-1 w-full border border-gray-300 rounded-md p-2 text-sm">Fase de comparação entre criativos e públicos para descobrir, com dados, o que funciona melhor antes de escalar.</textarea></div><div><label class="text-sm font-bold">O - Otimização</label><textarea data-target="impactoDescO-val" class="mt-1 w-full border border-gray-300 rounded-md p-2 text-sm">Análise de métricas para ajustar e escalar as campanhas vencedoras, garantindo o melhor retorno sobre o investimento (ROI).</textarea></div></div></div>
+                    <div class="p-4 border rounded-lg"><h3 class="font-semibold text-lg mb-2 text-cyan-700">6. Como Acontece na Prática?</h3><div class="space-y-3"><textarea data-target="praticaDesc1-val" class="mt-1 w-full border border-gray-300 rounded-md p-2 text-sm">Nossa parceria é formalizada com o pagamento antecipado da mensalidade, via Pix ou transferência.</textarea><textarea data-target="praticaDesc2-val" class="mt-1 w-full border border-gray-300 rounded-md p-2 text-sm">Definiremos juntos os criativos (imagens/vídeos) e estratégias. Você pode fornecer o material ou adaptamos o que já existe.</textarea><textarea data-target="praticaDesc3-val" class="mt-1 w-full border border-gray-300 rounded-md p-2 text-sm">Vou te guiar em todo o processo de configuração da conta de anúncios, garantindo que tudo esteja 100% correto.</textarea><textarea data-target="praticaDesc4-val" class="mt-1 w-full border border-gray-300 rounded-md p-2 text-sm">O compartilhamento do acesso à sua conta será feito de forma segura durante nossa reunião de kickoff.</textarea><textarea data-target="praticaDesc5-val" class="mt-1 w-full border border-gray-300 rounded-md p-2 text-sm">Você terá um canal de comunicação direto via WhatsApp para tirar dúvidas e fazer alinhamentos.</textarea><textarea data-target="praticaDesc6-val" class="mt-1 w-full border border-gray-300 rounded-md p-2 text-sm">Teremos um encontro semanal para discutir os resultados e alinhar as próximas estratégias.</textarea><textarea data-target="praticaDesc7-val" class="mt-1 w-full border border-gray-300 rounded-md p-2 text-sm">Você receberá relatórios claros para entender exatamente o retorno de suas campanhas.</textarea><textarea data-target="praticaDesc8-val" class="mt-1 w-full border border-gray-300 rounded-md p-2 text-sm">Suas campanhas serão monitoradas e otimizadas diariamente para garantir o melhor uso do seu investimento.</textarea></div></div>
+                    <div class="p-4 border rounded-lg"><h3 class="font-semibold text-lg mb-2 text-cyan-700">7. Valores e Fechamento</h3><div><label class="block text-sm font-medium text-gray-700">Investimento em Anúncios (R$)</label><input type="number" id="valorAnuncios" data-target="valorAnuncios-val" class="mt-1 w-full border border-gray-300 rounded-md p-2" value="500"></div><div><label class="block text-sm font-medium text-gray-700">Seus Honorários (R$)</label><input type="number" id="valorHonorarios" data-target="valorHonorarios-val" class="mt-1 w-full border border-gray-300 rounded-md p-2" value="300"></div><div><label class="block text-sm font-medium text-gray-700">Validade da Proposta</label><input type="text" id="validadeProposta" data-target="validadeProposta-val" class="mt-1 w-full border border-gray-300 rounded-md p-2" value="DD/MM/AAAA"></div><div><label class="block text-sm font-medium text-gray-700">Seu Contato Final</label><input type="text" id="gestorContato" data-target="gestorContato-val" class="mt-1 w-full border border-gray-300 rounded-md p-2" value="(99) 99999-9999"></div></div>
+                    <div class="mt-6"><button type="button" id="download-pdf-btn" class="w-full bg-cyan-600 hover:bg-cyan-700 text-white font-bold py-3 px-4 rounded-lg flex items-center justify-center text-lg"><i class="fas fa-file-pdf mr-2"></i> Baixar Proposta em PDF</button></div>
+                </form>
+            </div>
+            <div id="preview-panel" class="w-full md:w-2/3 overflow-y-auto"><div id="proposal-preview" class="bg-gray-100 text-gray-800">
+                 <section class="slide bg-gray-900 text-white text-center"><div class="max-w-3xl"><h1 class="text-4xl md:text-6xl font-extrabold" data-preview="clienteNome-val">[Nome do Cliente]</h1><p class="mt-4 text-xl md:text-2xl text-cyan-400" data-preview="fraseImpacto-val"></p><p class="mt-8">Apresentado por: <span class="font-bold" data-preview="gestorNome-val"></span></p></div></section>
+                 <section class="slide"><div class="max-w-3xl text-center"><h2 class="text-3xl md:text-4xl font-bold mb-8">Prazer, <span data-preview="gestorNome-val"></span>!</h2><div class="card text-left text-lg text-gray-700 space-y-4"><p data-preview="apresentacao-val"></p><div class="text-center pt-4"><p class="text-xl font-semibold text-gray-800" data-preview="citacao-val"></p><p class="text-md text-gray-500" data-preview="autorCitacao-val"></p></div></div></div></section>
+                 <section class="slide"><div class="max-w-4xl text-center"><h2 class="text-3xl md:text-4xl font-bold mb-10">Os 4 Pilares Essenciais</h2><div class="grid md:grid-cols-2 lg:grid-cols-4 gap-8"><div class="card text-center"><i class="fas fa-dollar-sign text-4xl text-cyan-500 mb-4"></i><h3 class="font-bold text-xl mb-2" data-preview="pilarTitulo1-val"></h3><p class="text-gray-600 whitespace-pre-wrap" data-preview="pilarDesc1-val"></p></div><div class="card text-center"><i class="fas fa-bullseye text-4xl text-cyan-500 mb-4"></i><h3 class="font-bold text-xl mb-2" data-preview="pilarTitulo2-val"></h3><p class="text-gray-600 whitespace-pre-wrap" data-preview="pilarDesc2-val"></p></div><div class="card text-center"><i class="fas fa-users text-4xl text-cyan-500 mb-4"></i><h3 class="font-bold text-xl mb-2" data-preview="pilarTitulo3-val"></h3><p class="text-gray-600 whitespace-pre-wrap" data-preview="pilarDesc3-val"></p></div><div class="card text-center"><i class="fas fa-ad text-4xl text-cyan-500 mb-4"></i><h3 class="font-bold text-xl mb-2" data-preview="pilarTitulo4-val"></h3><p class="text-gray-600 whitespace-pre-wrap" data-preview="pilarDesc4-val"></p></div></div></div></section>
+                 <section class="slide bg-gray-200"><div class="max-w-3xl text-center"><h2 class="text-3xl md:text-4xl font-bold mb-8">Antes de tudo, preciso te ouvir.</h2><div class="card text-left"><h3 class="font-bold text-2xl mb-4">Onde o calo aperta?</h3><ul class="space-y-3 text-gray-600 text-lg"><li><i class="fas fa-question-circle text-cyan-500 mr-2"></i> <span data-preview="diagPergunta1-val"></span></li><li><i class="fas fa-question-circle text-cyan-500 mr-2"></i> <span data-preview="diagPergunta2-val"></span></li><li><i class="fas fa-question-circle text-cyan-500 mr-2"></i> <span data-preview="diagPergunta3-val"></span></li></ul></div></div></section>
+                 <section class="slide"><div class="max-w-5xl w-full text-center"><h2 class="text-3xl md:text-4xl font-bold mb-10">Meu Método de Trabalho: I.M.P.A.C.T.O.</h2><div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6 text-left"><div class="card"><h3 class="font-bold text-xl mb-2"><span class="text-cyan-500">I</span>nventário</h3><p class="text-gray-600" data-preview="impactoDescI-val"></p></div><div class="card"><h3 class="font-bold text-xl mb-2"><span class="text-cyan-500">M</span>ensagem</h3><p class="text-gray-600" data-preview="impactoDescM-val"></p></div><div class="card"><h3 class="font-bold text-xl mb-2"><span class="text-cyan-500">P</span>úblico</h3><p class="text-gray-600" data-preview="impactoDescP-val"></p></div><div class="card"><h3 class="font-bold text-xl mb-2"><span class="text-cyan-500">A</span>núncio</h3><p class="text-gray-600" data-preview="impactoDescA-val"></p></div><div class="card"><h3 class="font-bold text-xl mb-2"><span class="text-cyan-500">C</span>onversão</h3><p class="text-gray-600" data-preview="impactoDescC-val"></p></div><div class="card"><h3 class="font-bold text-xl mb-2"><span class="text-cyan-500">T</span>este</h3><p class="text-gray-600" data-preview="impactoDescT-val"></p></div><div class="col-span-1 md:col-span-2 lg:col-span-3"><div class="card w-full"><h3 class="font-bold text-xl mb-2"><span class="text-cyan-500">O</span>timização</h3><p class="text-gray-600" data-preview="impactoDescO-val"></p></div></div></div></div></section>
+                 <section class="slide bg-gray-200"><div class="max-w-4xl w-full text-center"><h2 class="text-3xl md:text-4xl font-bold mb-10">Como Acontece na Prática?</h2><div class="grid md:grid-cols-2 gap-6 text-left"><div class="card flex items-start space-x-4"><span class="bg-cyan-500 text-gray-900 rounded-full h-8 w-8 flex-shrink-0 inline-flex items-center justify-center font-bold">1</span><div><h3 class="font-bold text-xl mb-1">Início da Parceria (Pagamento)</h3><p class="text-gray-600" data-preview="praticaDesc1-val"></p></div></div><div class="card flex items-start space-x-4"><span class="bg-cyan-500 text-gray-900 rounded-full h-8 w-8 flex-shrink-0 inline-flex items-center justify-center font-bold">2</span><div><h3 class="font-bold text-xl mb-1">Definição dos Criativos</h3><p class="text-gray-600" data-preview="praticaDesc2-val"></p></div></div><div class="card flex items-start space-x-4"><span class="bg-cyan-500 text-gray-900 rounded-full h-8 w-8 flex-shrink-0 inline-flex items-center justify-center font-bold">3</span><div><h3 class="font-bold text-xl mb-1">Configuração Guiada da Conta</h3><p class="text-gray-600" data-preview="praticaDesc3-val"></p></div></div><div class="card flex items-start space-x-4"><span class="bg-cyan-500 text-gray-900 rounded-full h-8 w-8 flex-shrink-0 inline-flex items-center justify-center font-bold">4</span><div><h3 class="font-bold text-xl mb-1">Acesso Seguro à Conta</h3><p class="text-gray-600" data-preview="praticaDesc4-val"></p></div></div><div class="card flex items-start space-x-4"><span class="bg-cyan-500 text-gray-900 rounded-full h-8 w-8 flex-shrink-0 inline-flex items-center justify-center font-bold">5</span><div><h3 class="font-bold text-xl mb-1">Suporte e Contato Direto</h3><p class="text-gray-600" data-preview="praticaDesc5-val"></p></div></div><div class="card flex items-start space-x-4"><span class="bg-cyan-500 text-gray-900 rounded-full h-8 w-8 flex-shrink-0 inline-flex items-center justify-center font-bold">6</span><div><h3 class="font-bold text-xl mb-1">Encontros Estratégicos</h3><p class="text-gray-600" data-preview="praticaDesc6-val"></p></div></div><div class="card flex items-start space-x-4"><span class="bg-cyan-500 text-gray-900 rounded-full h-8 w-8 flex-shrink-0 inline-flex items-center justify-center font-bold">7</span><div><h3 class="font-bold text-xl mb-1">Relatórios Semanais</h3><p class="text-gray-600" data-preview="praticaDesc7-val"></p></div></div><div class="card flex items-start space-x-4"><span class="bg-cyan-500 text-gray-900 rounded-full h-8 w-8 flex-shrink-0 inline-flex items-center justify-center font-bold">8</span><div><h3 class="font-bold text-xl mb-1">Gestão e Otimização Diária</h3><p class="text-gray-600" data-preview="praticaDesc8-val"></p></div></div></div></div></section>
+                 <section class="slide"><div class="max-w-3xl text-center"><h2 class="text-3xl md:text-4xl font-bold mb-8">Proposta Financeira</h2><div class="card w-full max-w-sm mx-auto"><div class="text-left space-y-4"><div><p class="font-bold text-lg">Investimento em Anúncios:</p><p class="text-2xl font-bold text-cyan-600">R$ <span class="font-extrabold" data-preview="valorAnuncios-val"></span><span class="text-base font-medium text-gray-500">,00 /mês</span></p></div><hr class="my-4"><div><p class="font-bold text-lg">Meus Honorários (Gestão):</p><p class="text-2xl font-bold text-cyan-600">R$ <span class="font-extrabold" data-preview="valorHonorarios-val"></span><span class="text-base font-medium text-gray-500">,00 /mês</span></p></div></div><div class="mt-6 bg-gray-100 p-4 rounded-lg"><p class="text-lg font-bold">Investimento Total:</p><p class="text-4xl font-extrabold text-gray-800" data-preview="valorTotal-val"></p></div></div></div></section>
+                 <section class="slide bg-gray-900 text-white"><div class="max-w-3xl text-center"><h2 class="text-3xl md:text-4xl font-bold mb-4">Vamos fechar nossa parceria?</h2><div class="bg-gray-800 p-6 rounded-2xl"><h3 class="font-bold text-2xl mb-4 text-cyan-400">Próximos Passos</h3><ol class="text-left space-y-3 text-lg"><li><span class="bg-cyan-500 text-gray-900 rounded-full h-8 w-8 inline-flex items-center justify-center font-bold mr-3">1</span>Aceite da Proposta</li><li><span class="bg-cyan-500 text-gray-900 rounded-full h-8 w-8 inline-flex items-center justify-center font-bold mr-3">2</span>Envio do Contrato e Pagamento</li><li><span class="bg-cyan-500 text-gray-900 rounded-full h-8 w-8 inline-flex items-center justify-center font-bold mr-3">3</span>Reunião de Kickoff!</li></ol></div><div class="mt-8 text-sm"><p>Proposta válida até <span data-preview="validadeProposta-val"></span></p><p class="mt-4">Obrigado pela oportunidade!</p><p><span data-preview="gestorNome-val"></span> | <span data-preview="gestorContato-val"></span></p></div></div></section>
+            </div></div>
+        </div>
+
+        <!-- Ferramenta Kickoff -->
+        <div id="kickoff-tool" class="hidden flex-col md:flex-row flex-grow overflow-hidden">
+            <div id="kickoff-form-panel" class="w-full md:w-1/3 bg-white p-6 overflow-y-auto no-print">
+                 <div class="flex justify-between items-center mb-6">
+                    <div><h2 class="text-2xl font-bold">Preenchimento do Diagnóstico</h2><p class="text-gray-500">Construa o relatório com o cliente.</p></div>
+                    <button id="hide-kickoff-editor-btn" class="text-gray-500 hover:text-cyan-600 p-2 rounded-full" title="Ocultar Editor"><i class="fas fa-eye-slash fa-lg"></i></button>
+                </div>
+                <form id="kickoff-form" class="space-y-4">
+                    <div class="p-4 border rounded-lg"><h3 class="font-semibold text-lg mb-2 text-cyan-700">Sobre o Negócio</h3>
+                        <label class="font-medium text-sm">Principal produto/serviço a focar?</label><textarea data-target-kickoff="diag-negocio1" class="mt-1 w-full border p-2 rounded-md text-sm"></textarea>
+                        <label class="font-medium text-sm mt-2">Qual é o seu grande diferencial?</label><textarea data-target-kickoff="diag-negocio2" class="mt-1 w-full border p-2 rounded-md text-sm"></textarea>
+                        <label class="font-medium text-sm mt-2">Capacidade máxima de atendimento?</label><textarea data-target-kickoff="diag-negocio3" class="mt-1 w-full border p-2 rounded-md text-sm"></textarea>
+                    </div>
+                    <div class="p-4 border rounded-lg"><h3 class="font-semibold text-lg mb-2 text-cyan-700">Sobre o Produto/Serviço</h3>
+                        <label class="font-medium text-sm">Preço de venda?</label><textarea data-target-kickoff="diag-produto1" class="w-full border p-2 rounded-md text-sm"></textarea>
+                        <label class="font-medium text-sm mt-2">Margem de lucro aproximada?</label><textarea data-target-kickoff="diag-produto2" class="w-full border p-2 rounded-md text-sm"></textarea>
+                        <label class="font-medium text-sm mt-2">3 maiores benefícios?</label><textarea data-target-kickoff="diag-produto3" class="w-full border p-2 rounded-md text-sm"></textarea>
+                    </div>
+                     <div class="p-4 border rounded-lg"><h3 class="font-semibold text-lg mb-2 text-cyan-700">Sobre o Cliente Ideal</h3>
+                        <label class="font-medium text-sm">Descrição do melhor cliente:</label><textarea data-target-kickoff="diag-cliente1" class="w-full border p-2 rounded-md text-sm"></textarea>
+                        <label class="font-medium text-sm mt-2">Tipo de cliente a não atrair?</label><textarea data-target-kickoff="diag-cliente2" class="w-full border p-2 rounded-md text-sm"></textarea>
+                        <label class="font-medium text-sm mt-2">Maior transformação que o produto causa?</label><textarea data-target-kickoff="diag-cliente3" class="w-full border p-2 rounded-md text-sm"></textarea>
+                    </div>
+                     <div class="p-4 border rounded-lg"><h3 class="font-semibold text-lg mb-2 text-cyan-700">Sobre Metas e Histórico</h3>
+                        <label class="font-medium text-sm">Objetivo Nº 1 para os primeiros 30 dias?</label><textarea data-target-kickoff="diag-metas1" class="w-full border p-2 rounded-md text-sm"></textarea>
+                        <label class="font-medium text-sm mt-2">Aprendizados com anúncios anteriores?</label><textarea data-target-kickoff="diag-metas2" class="w-full border p-2 rounded-md text-sm"></textarea>
+                        <label class="font-medium text-sm mt-2">Faturamento atual e meta para 6 meses?</label><textarea data-target-kickoff="diag-metas3" class="w-full border p-2 rounded-md text-sm"></textarea>
+                    </div>
+                     <div class="p-4 border rounded-lg"><h3 class="font-semibold text-lg mb-2 text-cyan-700">Resumo Estratégico</h3>
+                        <label class="font-medium text-sm">Resumo gerado (pode ser editado)</label><textarea id="resumo-estrategico" data-target-kickoff="resumo-estrategico" rows="6" class="mt-1 w-full border p-2 rounded-md text-sm bg-gray-50"></textarea>
+                    </div>
+                    <div class="mt-6"><button type="button" id="download-kickoff-btn" class="w-full bg-gray-700 hover:bg-gray-800 text-white font-bold py-3 px-4 rounded-lg flex items-center justify-center text-lg"><i class="fas fa-file-pdf mr-2"></i> Baixar PDF do Relatório</button></div>
+                </form>
+            </div>
+            <div id="kickoff-preview-panel" class="w-full md:w-2/3 overflow-y-auto bg-gray-100 p-4 md:p-8">
+                 <div id="kickoff-preview-container" class="bg-white p-6 md:p-12 rounded-lg shadow-lg max-w-4xl mx-auto">
+                    <div class="text-center border-b pb-6 mb-6">
+                        <h1 class="text-3xl font-bold">Relatório de Kickoff Estratégico</h1>
+                        <p class="text-lg text-gray-600 mt-2">Cliente: <span id="kickoff-client-name" class="font-semibold">[Nome do Cliente]</span></p>
+                    </div>
+                    <div class="space-y-8">
+                        <div><h2 class="text-2xl font-bold text-cyan-700 border-b pb-2 mb-4">Diagnóstico do Negócio</h2>
+                            <div class="space-y-4"><h3 class="font-semibold text-gray-800">Principal produto/serviço a focar?</h3><p class="text-gray-700 pl-4 border-l-2 border-gray-200" data-preview-kickoff="diag-negocio1">...</p></div>
+                            <div class="space-y-4 mt-4"><h3 class="font-semibold text-gray-800">Qual é o seu grande diferencial?</h3><p class="text-gray-700 pl-4 border-l-2 border-gray-200" data-preview-kickoff="diag-negocio2">...</p></div>
+                            <div class="space-y-4 mt-4"><h3 class="font-semibold text-gray-800">Capacidade máxima de atendimento?</h3><p class="text-gray-700 pl-4 border-l-2 border-gray-200" data-preview-kickoff="diag-negocio3">...</p></div>
+                        </div>
+                        <div><h2 class="text-2xl font-bold text-cyan-700 border-b pb-2 mb-4">Diagnóstico do Produto/Serviço</h2>
+                            <div class="space-y-4"><h3 class="font-semibold text-gray-800">Preço de venda?</h3><p class="text-gray-700 pl-4 border-l-2 border-gray-200" data-preview-kickoff="diag-produto1">...</p></div>
+                            <div class="space-y-4 mt-4"><h3 class="font-semibold text-gray-800">Margem de lucro aproximada?</h3><p class="text-gray-700 pl-4 border-l-2 border-gray-200" data-preview-kickoff="diag-produto2">...</p></div>
+                            <div class="space-y-4 mt-4"><h3 class="font-semibold text-gray-800">3 maiores benefícios?</h3><p class="text-gray-700 pl-4 border-l-2 border-gray-200" data-preview-kickoff="diag-produto3">...</p></div>
+                        </div>
+                         <div><h2 class="text-2xl font-bold text-cyan-700 border-b pb-2 mb-4">Diagnóstico do Cliente Ideal</h2>
+                            <div class="space-y-4"><h3 class="font-semibold text-gray-800">Descrição do melhor cliente:</h3><p class="text-gray-700 pl-4 border-l-2 border-gray-200" data-preview-kickoff="diag-cliente1">...</p></div>
+                            <div class="space-y-4 mt-4"><h3 class="font-semibold text-gray-800">Tipo de cliente a não atrair?</h3><p class="text-gray-700 pl-4 border-l-2 border-gray-200" data-preview-kickoff="diag-cliente2">...</p></div>
+                            <div class="space-y-4 mt-4"><h3 class="font-semibold text-gray-800">Maior transformação que o produto causa?</h3><p class="text-gray-700 pl-4 border-l-2 border-gray-200" data-preview-kickoff="diag-cliente3">...</p></div>
+                        </div>
+                         <div><h2 class="text-2xl font-bold text-cyan-700 border-b pb-2 mb-4">Metas e Histórico</h2>
+                            <div class="space-y-4"><h3 class="font-semibold text-gray-800">Objetivo Nº 1 para os primeiros 30 dias?</h3><p class="text-gray-700 pl-4 border-l-2 border-gray-200" data-preview-kickoff="diag-metas1">...</p></div>
+                            <div class="space-y-4 mt-4"><h3 class="font-semibold text-gray-800">Aprendizados com anúncios anteriores?</h3><p class="text-gray-700 pl-4 border-l-2 border-gray-200" data-preview-kickoff="diag-metas2">...</p></div>
+                            <div class="space-y-4 mt-4"><h3 class="font-semibold text-gray-800">Faturamento atual e meta para 6 meses?</h3><p class="text-gray-700 pl-4 border-l-2 border-gray-200" data-preview-kickoff="diag-metas3">...</p></div>
+                        </div>
+                        <div><h2 class="text-2xl font-bold text-cyan-700 border-b pb-2 mb-4">Resumo Estratégico</h2>
+                            <p class="text-gray-700 pl-4 border-l-2 border-gray-200 whitespace-pre-wrap" data-preview-kickoff="resumo-estrategico">...</p>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
     
-    <button id="show-editor-btn" class="hidden fixed bottom-6 right-6 bg-cyan-600 hover:bg-cyan-700 text-white w-16 h-16 rounded-full flex items-center justify-center shadow-lg z-50 transition-all duration-300" title="Mostrar Editor">
+    <button id="show-editor-btn" class="hidden fixed bottom-6 right-6 bg-cyan-600 hover:bg-cyan-700 text-white w-16 h-16 rounded-full flex items-center justify-center shadow-lg z-50 transition-all duration-300 no-print" title="Mostrar Editor">
         <i class="fas fa-pen-to-square fa-2x"></i>
     </button>
 
-
     <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            // --- INICIALIZAÇÃO DO APP ---
-            function initializeApp() {
-                const form = document.getElementById('proposal-form');
+    document.addEventListener('DOMContentLoaded', function() {
+        // --- State Management ---
+        let isSummaryManuallyEdited = false;
+
+        const correctPassword = "IMPACTO2025";
+        const passwordOverlay = document.getElementById('password-overlay');
+        const passwordInput = document.getElementById('password-input');
+        const passwordSubmit = document.getElementById('password-submit');
+        const errorMessage = document.getElementById('error-message');
+        const appContent = document.getElementById('app-content');
+
+        passwordSubmit.addEventListener('click', handlePasswordCheck);
+        passwordInput.addEventListener('keyup', (event) => { if (event.key === "Enter") { handlePasswordCheck(); } });
+
+        function handlePasswordCheck() {
+            if (passwordInput.value === correctPassword) {
+                passwordOverlay.classList.add('hidden');
+                appContent.classList.remove('hidden');
+                appContent.classList.add('flex');
+                initializeApp();
+            } else { errorMessage.classList.remove('hidden'); }
+        }
+
+        function initializeApp() {
+            const tabProposal = document.getElementById('tab-proposal');
+            const tabKickoff = document.getElementById('tab-kickoff');
+            const proposalTool = document.getElementById('proposal-tool');
+            const kickoffTool = document.getElementById('kickoff-tool');
             
-                function updatePreview() {
-                    const inputs = form.querySelectorAll('input, textarea');
-                    let total = 0;
-
-                    inputs.forEach(input => {
-                        const targetId = input.dataset.target;
-                        if(targetId) {
-                            const value = input.value;
-                            document.querySelectorAll(`[data-preview='${targetId}']`).forEach(el => {
-                                el.textContent = value || '';
-                            });
-                        }
-                         if (input.id === 'valorAnuncios' || input.id === 'valorHonorarios') {
-                             total += parseFloat(input.value) || 0;
-                         }
-                    });
-                    const totalElement = document.querySelector('[data-preview="valorTotal-val"]');
-                    if (totalElement) {
-                        totalElement.textContent = `R$ ${total.toFixed(2).replace('.', ',')}`;
-                    }
-                }
-
-                form.addEventListener('input', updatePreview);
-
-                const downloadButton = document.getElementById('download-pdf-btn');
-                if(downloadButton) {
-                    downloadButton.addEventListener('click', function (event) {
-                        event.preventDefault(); 
-                        const element = document.getElementById('proposal-preview');
-                        const clienteNome = document.querySelector('[data-target="clienteNome-val"]').value || 'proposta';
-                        element.classList.add('pdf-friendly');
-
-                        const opt = {
-                            margin: 0,
-                            filename: `Proposta - ${clienteNome}.pdf`,
-                            image: { type: 'jpeg', quality: 0.98 },
-                            html2canvas: { scale: 2, useCORS: true, logging: false },
-                            jsPDF: { unit: 'px', format: 'a4', orientation: 'portrait' }
-                        };
-
-                        html2pdf().set(opt).from(element).save().then(() => {
-                            element.classList.remove('pdf-friendly');
-                        });
-                    });
-                }
-
-                const hideEditorBtn = document.getElementById('hide-editor-btn');
-                const showEditorBtn = document.getElementById('show-editor-btn');
-                const formPanel = document.getElementById('form-panel');
-                const previewPanel = document.getElementById('preview-panel');
-
-                hideEditorBtn.addEventListener('click', () => {
-                    formPanel.classList.remove('md:w-1/3', 'p-6');
-                    formPanel.classList.add('w-0', 'p-0', 'overflow-hidden', 'border-none');
-                    previewPanel.classList.remove('md:w-2/3');
-                    previewPanel.classList.add('w-full');
-                    showEditorBtn.classList.remove('hidden');
-                });
-
-                showEditorBtn.addEventListener('click', () => {
-                    formPanel.classList.add('md:w-1/3', 'p-6');
-                    formPanel.classList.remove('w-0', 'p-0', 'overflow-hidden', 'border-none');
-                    previewPanel.classList.add('md:w-2/3');
-                    previewPanel.classList.remove('w-full');
-                    showEditorBtn.classList.add('hidden');
-                });
+            function switchTab(activeTab, inactiveTab, activeTool, inactiveTool) {
+                activeTab.classList.add('active');
+                inactiveTab.classList.remove('active');
+                activeTool.classList.remove('hidden');
+                activeTool.classList.add('flex');
+                inactiveTool.classList.add('hidden');
+                inactiveTool.classList.remove('flex');
                 
-                updatePreview();
+                document.getElementById('show-editor-btn').classList.add('hidden');
+                const formPanel = activeTool.querySelector('.no-print');
+                const previewPanel = activeTool.querySelector('.overflow-y-auto');
+                
+                if (formPanel.classList.contains('hidden')) {
+                     formPanel.classList.remove('hidden');
+                     previewPanel.classList.remove('w-full');
+                     previewPanel.classList.add('md:w-2/3');
+                }
             }
 
-            // --- LÓGICA DE SENHA ---
-            const correctPassword = "IMPACTO2025";
-            const passwordOverlay = document.getElementById('password-overlay');
-            const passwordInput = document.getElementById('password-input');
-            const passwordSubmit = document.getElementById('password-submit');
-            const errorMessage = document.getElementById('error-message');
-            const appContent = document.getElementById('app-content');
-
-            passwordSubmit.addEventListener('click', () => {
-                if (passwordInput.value === correctPassword) {
-                    passwordOverlay.classList.add('hidden');
-                    appContent.classList.remove('hidden');
-                    initializeApp(); // Inicia o app APENAS depois da senha correta
+            tabProposal.addEventListener('click', () => switchTab(tabProposal, tabKickoff, proposalTool, kickoffTool));
+            tabKickoff.addEventListener('click', () => switchTab(tabKickoff, tabProposal, kickoffTool, proposalTool));
+            
+            document.getElementById('proposal-form').addEventListener('input', updateProposalPreview);
+            document.getElementById('download-pdf-btn').addEventListener('click', downloadProposalPDF);
+            
+            document.getElementById('kickoff-form').addEventListener('input', (e) => {
+                if (e.target.id === 'resumo-estrategico') {
+                    isSummaryManuallyEdited = true;
                 } else {
-                    errorMessage.classList.remove('hidden');
+                    isSummaryManuallyEdited = false;
+                }
+                updateKickoffPreview();
+            });
+
+            document.getElementById('download-kickoff-btn').addEventListener('click', downloadKickoffPDF);
+
+            const hideEditorBtn = document.getElementById('hide-editor-btn');
+            const hideKickoffEditorBtn = document.getElementById('hide-kickoff-editor-btn');
+            const showEditorBtn = document.getElementById('show-editor-btn');
+            const formPanel = document.getElementById('form-panel');
+            const previewPanel = document.getElementById('preview-panel');
+            const kickoffFormPanel = document.getElementById('kickoff-form-panel');
+            const kickoffPreviewPanel = document.getElementById('kickoff-preview-panel');
+
+            function togglePanel(form, preview, showBtn) {
+                form.classList.add('hidden');
+                preview.classList.remove('md:w-2/3');
+                preview.classList.add('w-full');
+                showBtn.classList.remove('hidden');
+            }
+            
+            function untogglePanel(form, preview, showBtn){
+                form.classList.remove('hidden');
+                preview.classList.add('md:w-2/3');
+                preview.classList.remove('w-full');
+                showBtn.classList.add('hidden');
+            }
+
+            hideEditorBtn.addEventListener('click', () => togglePanel(formPanel, previewPanel, showEditorBtn));
+            hideKickoffEditorBtn.addEventListener('click', () => togglePanel(kickoffFormPanel, kickoffPreviewPanel, showEditorBtn));
+
+            showEditorBtn.addEventListener('click', () => {
+                if (tabProposal.classList.contains('active')) {
+                   untogglePanel(formPanel, previewPanel, showEditorBtn);
+                } else {
+                   untogglePanel(kickoffFormPanel, kickoffPreviewPanel, showEditorBtn);
                 }
             });
 
-            passwordInput.addEventListener('keyup', (event) => {
-                if (event.key === "Enter") {
-                    passwordSubmit.click();
+            updateProposalPreview();
+        }
+
+        function updateProposalPreview() {
+            const inputs = document.querySelectorAll('#proposal-form [data-target]');
+            inputs.forEach(input => {
+                const previewElements = document.querySelectorAll(`[data-preview='${input.dataset.target}']`);
+                previewElements.forEach(el => {
+                    if (input.tagName.toLowerCase() === 'textarea' || (el.dataset.preview && el.dataset.preview.toLowerCase().includes('desc'))) {
+                        el.innerHTML = (input.value || '').replace(/\n/g, '<br />');
+                    } else {
+                        el.textContent = input.value || '';
+                    }
+                });
+            });
+
+            const valorAnuncios = parseFloat(document.getElementById('valorAnuncios').value) || 0;
+            const valorHonorarios = parseFloat(document.getElementById('valorHonorarios').value) || 0;
+            const total = valorAnuncios + valorHonorarios;
+            document.querySelector('[data-preview="valorTotal-val"]').textContent = `R$ ${total.toFixed(2).replace('.', ',')}`;
+            
+            const clienteNome = document.getElementById('clienteNomeInput').value;
+            document.getElementById('kickoff-client-name').textContent = clienteNome || '[Nome do Cliente]';
+
+            isSummaryManuallyEdited = false;
+            updateKickoffPreview();
+        }
+        
+        function updateKickoffPreview() {
+            const form = document.getElementById('kickoff-form');
+            const inputs = form.querySelectorAll('[data-target-kickoff]');
+            
+            inputs.forEach(input => {
+                const key = input.dataset.targetKickoff;
+                const value = input.value;
+                const previewEl = document.querySelector(`[data-preview-kickoff='${key}']`);
+                if(previewEl && key !== 'resumo-estrategico') {
+                    previewEl.innerHTML = value.replace(/\n/g, '<br />') || '...';
                 }
             });
-        });
+            
+            if (!isSummaryManuallyEdited) {
+                let summaryText = `Resumo do diagnóstico para ${document.getElementById('kickoff-client-name').textContent}:\n\n`;
+                const diagnosticInputs = form.querySelectorAll('[data-target-kickoff]:not(#resumo-estrategico)');
+                diagnosticInputs.forEach(input => {
+                    const label = input.previousElementSibling ? input.previousElementSibling.textContent : '';
+                    const value = input.value.trim();
+                    if (value) {
+                       summaryText += `- ${label}: ${value}\n`;
+                    }
+                });
+                const resumoTextarea = document.getElementById('resumo-estrategico');
+                resumoTextarea.value = summaryText;
+                document.querySelector('[data-preview-kickoff="resumo-estrategico"]').textContent = summaryText;
+
+            } else {
+                const resumoTextarea = document.getElementById('resumo-estrategico');
+                document.querySelector('[data-preview-kickoff="resumo-estrategico"]').textContent = resumoTextarea.value;
+            }
+        }
+
+        function downloadProposalPDF() {
+            const element = document.getElementById('proposal-preview');
+            const clienteNome = document.querySelector('[data-target="clienteNome-val"]').value || 'proposta';
+            
+            const printableElement = element.cloneNode(true);
+            printableElement.classList.add('printable-version');
+
+            const opt = {
+                margin: 0,
+                filename: `Proposta - ${clienteNome}.pdf`,
+                image: { type: 'jpeg', quality: 0.98 },
+                html2canvas: { scale: 2, useCORS: true, logging: false },
+                jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' }
+            };
+
+            html2pdf().from(printableElement).set(opt).save();
+        }
+
+        function downloadKickoffPDF() {
+            const element = document.getElementById('kickoff-preview-container');
+            const clienteNome = document.getElementById('kickoff-client-name').textContent || 'Relatorio';
+            
+            const printableElement = element.cloneNode(true);
+            printableElement.classList.add('printable-version');
+
+            const opt = {
+                margin:       [0.4, 0.4, 0.4, 0.4], // Margins in inches
+                filename:     `Relatorio de Kickoff - ${clienteNome}.pdf`,
+                image:        { type: 'jpeg', quality: 0.98 },
+                html2canvas:  { scale: 2, logging: false },
+                jsPDF:        { unit: 'in', format: 'a4', orientation: 'portrait' }
+            };
+            html2pdf().set(opt).from(printableElement).save();
+        }
+    });
     </script>
 </body>
-</ht
+</html>
